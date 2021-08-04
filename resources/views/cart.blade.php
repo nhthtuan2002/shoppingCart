@@ -39,13 +39,13 @@
         </thead>
         <tbody>
         <?php
-            $totalPrice=0
+        $totalPrice = 0
         ?>
         @foreach($shoppingCart as $obj)
             <?php
-                if (!empty($obj)){
-                    $totalPrice += $obj->unitPrice*$obj->quantity;
-                }
+            if (!empty($obj)) {
+                $totalPrice += $obj->unitPrice * $obj->quantity;
+            }
             ?>
             <form action="/add" method="get">
                 <input type="hidden" name="cartAction" value="update">
@@ -69,6 +69,30 @@
     </table>
     <div>
         Total Price:{{$totalPrice}}
+    </div>
+    <div class="row mt-5 justify-content-end">
+        <form class="col-6" action="/save" method="post">
+            @csrf
+                <div class="col-12">
+                    <div class="form-group"><input class="form-control" type="text" name="shipName"
+                                                   placeholder="Enter name..."></div>
+                </div>
+                <div class="col-12">
+                    <div class="form-group"><input class="form-control" type="text" name="shipPhone"
+                                                   placeholder="Enter phone..."></div>
+                </div>
+                <div class="col-12">
+                    <div class="form-group"><input class="form-control" type="text" name="shipAddress"
+                                                   placeholder="Enter address..."></div>
+                </div>
+                <div class="col-12">
+                    <div class="form-group"><input class="form-control" type="text" name="note"
+                                                   placeholder="Enter note..."></div>
+                </div>
+            <div class="form-group text-center">
+                <button class=" btn btn-primary">Submit</button>
+            </div>
+        </form>
     </div>
 </div>
 </body>

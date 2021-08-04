@@ -2,8 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Order;
+use App\Models\Order_details;
 use App\Models\Product;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 
 class ShoppingCartController extends Controller
@@ -58,5 +62,59 @@ class ShoppingCartController extends Controller
             Session::put('shoppingCart',$shoppingCart);
             return redirect('show')->with('remove','delete thành công!');
         }
+    }
+    public function save(Request $request){
+        if (!Session::has('shoppingCart') || count(Session::get('shoppingCart')) == 0){
+            Session::flash('error-msg', 'Hiện tại không có sản phẩm nào trong giỏ  hàng!');
+            return redirect('/products');
+        }
+        $shoppingCart = Session::get('shoppingCart');
+        $order = new Order();
+        $order->totalPrice = 0;
+        $order->customerId = 1;
+        $order->shipName = $request->get('shipName');
+        $order->shipPhone = $request->get('shipPhone');
+        $order->shipAddress = $request->get('shipAddress');
+        $order->note = $request->get('note');
+        $order->isCheckout = false;
+        $order->created_at = Carbon::now();
+        $order->updated_at = Carbon::now();
+        $order->status = 0;
+        $orderDetails = [];
+        $messageError = '';
+        foreach ($shoppingCart as $cartItem) {
+            $product = Product::find($cartItem->id);
+            if ($product == null) {
+                $messageError = 'Có lỗi xảy ra, sản phẩm với id' . $cartItem->id . 'không tồn tại hoặc đã bị xóa!';
+                break;
+            }
+            $orderDetail = new Order_details();
+            $orderDetail->productId = $product->id;
+            $orderDetail->unitPrice = $product->price;
+            $orderDetail->quantity = $cartItem->quantity;
+            $order->totalPrice += $orderDetail->quantity * $orderDetail->unitPrice;
+            array_push($orderDetails, $orderDetail);
+        }
+        if (count($orderDetails) == 0) {
+            Session::flash('error-msg', $messageError);
+            return redirect('/list');
+        }
+        try {
+            DB::beginTransaction();
+            $order->save();
+            $orderDetailArray = [];
+            foreach ($orderDetails as $orderDetail) {
+                $orderDetail->orderId = $order->id;
+                array_push($orderDetailArray, $orderDetail->toArray());
+            }
+            Order_details::insert($orderDetailArray);
+            DB::commit();;
+            Session::forget('shoppingCart');
+            Session::flash('success-msg', 'Lưu đơn hàng thành công!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return $e;
+        }
+        return redirect('/list');
     }
 }
